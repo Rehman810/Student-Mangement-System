@@ -5,27 +5,33 @@
 // Constants
 #define MAX_STUDENTS 100
 #define MAX_NAME_LENGTH 50
+#define MAX_SUBJECTS 5
+#define MAX_MARK 100
+#define MIN_MARK 0
+
+const char DEFAULT_SUBJECTS[MAX_SUBJECTS][MAX_NAME_LENGTH] = {"Functional English", "IICT", "Programming Fundamentals", "Applied Physics", "Calculus"};
 
 // Structure definition
 struct Student
 {
   int rollNumber;
   char name[MAX_NAME_LENGTH];
+  int marks[MAX_SUBJECTS];
 };
 
 // Function prototypes
 void addStudent(struct Student students[], int *numStudents);
 void displayStudents(const struct Student students[], int numStudents);
-void searchStudent(const struct Student students[], int numStudents,
-                   int rollNumber);
+void searchStudent(const struct Student students[], int numStudents, int rollNumber);
 void updateStudent(struct Student students[], int numStudents, int rollNumber);
 void deleteStudent(struct Student students[], int *numStudents, int rollNumber);
+void enterMarks(struct Student students[], int numStudents);
+void displayMarks(const struct Student students[], int numStudents);
+int isValidMarks(int mark);
 
 // File I/O functions
-void saveDataToFile(const struct Student students[], int numStudents,
-                    const char *filename);
-void loadDataFromFile(struct Student students[], int *numStudents,
-                      const char *filename);
+void saveDataToFile(const struct Student students[], int numStudents, const char *filename);
+void loadDataFromFile(struct Student students[], int *numStudents, const char *filename);
 
 int main()
 {
@@ -46,7 +52,8 @@ int main()
     printf("3. Search Student\n");
     printf("4. Update Student Information\n");
     printf("5. Delete Student\n");
-    // printf("6. Save Data to File\n");
+    printf("6. Enter Marks\n");
+    printf("7. Display Marks\n");
     printf("0. Exit\033[0m\n");
     printf("Enter your choice: ");
     scanf("%d", &choice);
@@ -84,9 +91,13 @@ int main()
       deleteStudent(students, &numStudents, rollNumber);
       break;
     }
-    // case 6:
-    //     saveDataToFile(students, numStudents, filename);
-    //     break;
+    case 6:
+      enterMarks(students, numStudents);
+      saveDataToFile(students, numStudents, filename);
+      break;
+    case 7:
+      displayMarks(students, numStudents);
+      break;
     case 0:
       printf("Exiting program. Goodbye!\n");
       break;
@@ -107,6 +118,11 @@ void addStudent(struct Student students[], int *numStudents)
 
     printf("Enter name for the new student: ");
     scanf("%s", students[*numStudents].name);
+
+    for (int i = 0; i < strlen(students[*numStudents].name); i++)
+    {
+      students[*numStudents].name[i] = toupper(students[*numStudents].name[i]);
+    }
 
     // Check if the name contains only letters
     int isValidName = 1;
@@ -182,6 +198,91 @@ void searchStudent(const struct Student students[], int numStudents, int rollNum
   }
 }
 
+void enterMarks(struct Student students[], int numStudents)
+{
+  int rollNumber;
+  printf("Enter the Roll Number of the student to enter marks: ");
+  scanf("%d", &rollNumber);
+
+  int studentIndex = -1;
+  for (int i = 0; i < numStudents; i++)
+  {
+    if (students[i].rollNumber == rollNumber)
+    {
+      studentIndex = i;
+      break;
+    }
+  }
+
+  if (studentIndex != -1)
+  {
+    printf("Enter marks for each subject:\n");
+
+    for (int i = 0; i < MAX_SUBJECTS; i++)
+    {
+      do
+      {
+        printf("Enter marks for %s: ", DEFAULT_SUBJECTS[i]);
+        scanf("%d", &students[studentIndex].marks[i]);
+
+        // Validate marks
+        if (!isValidMarks(students[studentIndex].marks[i]))
+        {
+          printf("Error: Marks should be in the range of %d to %d.\n", MIN_MARK, MAX_MARK);
+        }
+
+      } while (!isValidMarks(students[studentIndex].marks[i]));
+    }
+
+    printf("Marks entered successfully!\n");
+  }
+  else
+  {
+    printf("Student with Roll Number %d not found.\n", rollNumber);
+  }
+}
+
+// Function to validate marks
+int isValidMarks(int mark)
+{
+  return (mark >= MIN_MARK && mark <= MAX_MARK);
+}
+
+void displayMarks(const struct Student students[], int numStudents)
+{
+  int rollNumber;
+  printf("Enter the Roll Number of the student to display marks: ");
+  scanf("%d", &rollNumber);
+
+  int studentIndex = -1;
+  for (int i = 0; i < numStudents; i++)
+  {
+    if (students[i].rollNumber == rollNumber)
+    {
+      studentIndex = i;
+      break;
+    }
+  }
+
+  if (studentIndex != -1)
+  {
+    printf("Displaying marks for the student:\n");
+    printf("Student Roll Number: %d\n", students[studentIndex].rollNumber);
+    printf("Student Name: %s\n", students[studentIndex].name);
+
+    for (int j = 0; j < MAX_SUBJECTS; j++)
+    {
+      printf("%s: Marks: %d\n", DEFAULT_SUBJECTS[j], students[studentIndex].marks[j]);
+    }
+
+    printf("\n");
+  }
+  else
+  {
+    printf("Student with Roll Number %d is not exist.\n", rollNumber);
+  }
+}
+
 // Function to update student information
 void updateStudent(struct Student students[], int numStudents, int rollNumber)
 {
@@ -205,8 +306,7 @@ void updateStudent(struct Student students[], int numStudents, int rollNumber)
 }
 
 // Function to delete a student
-void deleteStudent(struct Student students[], int *numStudents,
-                   int rollNumber)
+void deleteStudent(struct Student students[], int *numStudents, int rollNumber)
 {
   int found = 0;
   for (int i = 0; i < *numStudents; i++)
@@ -226,24 +326,30 @@ void deleteStudent(struct Student students[], int *numStudents,
   }
   if (!found)
   {
-    printf("Student with Roll Number %d not found. Cannot delete.\n",
-           rollNumber);
+    printf("Student with Roll Number %d not found. Cannot delete.\n", rollNumber);
   }
 }
 
 // Function to save data to a file
-void saveDataToFile(const struct Student students[], int numStudents,
-                    const char *filename)
+void saveDataToFile(const struct Student students[], int numStudents, const char *filename)
 {
   FILE *file = fopen(filename, "w");
   if (file != NULL)
   {
+    fprintf(file, "%d\n", numStudents); // Save the number of students
+
     for (int i = 0; i < numStudents; i++)
     {
-      fprintf(file, "Roll Number: %d Student Name: %s\n",
-              students[i].rollNumber, students[i].name);
+      fprintf(file, "%d %s", students[i].rollNumber, students[i].name);
+
+      for (int j = 0; j < MAX_SUBJECTS; j++)
+      {
+        fprintf(file, " %d", students[i].marks[j]);
+      }
+
       fprintf(file, "\n");
     }
+
     fclose(file);
     printf("Data saved to file successfully!\n");
   }
@@ -253,23 +359,27 @@ void saveDataToFile(const struct Student students[], int numStudents,
   }
 }
 
-void loadDataFromFile(struct Student students[], int *numStudents,
-                      const char *filename)
+// Function to load data from a file
+void loadDataFromFile(struct Student students[], int *numStudents, const char *filename)
 {
   FILE *file = fopen(filename, "r");
   if (file != NULL)
   {
-    while (fscanf(file, "Roll Number: %d Student Name: %s",
-                  &students[*numStudents].rollNumber,
-                  students[*numStudents].name) == 2)
+    int readStudents;
+    fscanf(file, "%d", &readStudents); // Read the number of students
+
+    for (int i = 0; i < readStudents; i++)
     {
-      (*numStudents)++;
-      if (*numStudents >= MAX_STUDENTS)
+      fscanf(file, "%d %s", &students[*numStudents].rollNumber, students[*numStudents].name);
+
+      for (int j = 0; j < MAX_SUBJECTS; j++)
       {
-        break;
+        fscanf(file, "%d", &students[*numStudents].marks[j]);
       }
-      fgetc(file);
+
+      (*numStudents)++;
     }
+
     fclose(file);
     printf("Data loaded from file successfully!\n");
   }
